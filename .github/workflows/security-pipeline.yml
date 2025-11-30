@@ -1,0 +1,58 @@
+name: Security Pipeline (SAST + SCA + DAST)
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # ---------- SAST (Semgrep / OpenGrep) ----------
+      - name: Run OpenGrep SAST
+        run: |
+          docker run --rm \
+            -v "$PWD:/src" \
+            returntocorp/semgrep \
+            semgrep scan --config=auto --json -o /src/sast-opengrep.json || true
+
+      # ---------- SCA (OSV Scanner) ----------
+      - name: Run OSV Scanner
+        run: |
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            ghcr.io/google/osv-scanner:latest \
+            scan --format json \
+            --output /workspace/sca-osv.json /workspace || true
+
+      # ---------- Start PHP Application ----------
+      - name: Build and Run Vulnerable App
+        run: |
+          docker build -t vuln-php-app .
+          docker run -d -p 8080:80 --name vuln-app vuln-php-app
+          sleep 20
+
+      # ---------- DAST (OWASP ZAP) ----------
+      - name: Run OWASP ZAP Scan
+        run: |
+          docker run --rm -t owasp/zap2docker-stable \
+            zap-baseline.py \
+            -t http://localhost:8080 \
+            -J zap-report.json || true
+
+      # ---------- Upload Result Files ----------
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: Security-Reports
+          path: |
+            sast-opengrep.json
+            sca-osv.json
+            zap-report.json
