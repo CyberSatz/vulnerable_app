@@ -29,8 +29,7 @@ jobs:
           docker run --rm \
             -v "$PWD:/repo" \
             ghcr.io/google/osv-scanner:latest \
-            --format json \
-            --output /repo/sca-osv.json \ /repo || true
+            scan --format json --output /repo/sca-osv.json /repo || true
 
       # ---------- Start PHP Application ----------
       - name: Build and Run Vulnerable App
@@ -42,10 +41,14 @@ jobs:
       # ---------- DAST (OWASP ZAP) ----------
       - name: Run OWASP ZAP Scan
         run: |
-          docker run --rm -t owasp/zap2docker-stable \
+          mkdir zap-output
+          docker run --rm \
+            -v "$PWD/zap-output:/zap/wrk" \
+            owasp/zap2docker-stable \
             zap-baseline.py \
-            -t http://localhost:8080 \
-            -J zap-report.json || true
+              -t http://localhost:8080 \
+              -J zap-report.json || true
+          cp zap-output/zap-report.json .
 
       # ---------- Upload Result Files ----------
       - name: Upload Security Reports
