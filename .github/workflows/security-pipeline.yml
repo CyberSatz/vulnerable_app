@@ -27,10 +27,10 @@ jobs:
       - name: Run OSV Scanner
         run: |
           docker run --rm \
-            -v "$PWD:/workspace" \
+            -v "$PWD:/repo" \
             ghcr.io/google/osv-scanner:latest \
-            scan --format json \
-            --output /workspace/sca-osv.json /workspace || true
+            --format json \
+            --output /repo/sca-osv.json \ /repo || true
 
       # ---------- Start PHP Application ----------
       - name: Build and Run Vulnerable App
