@@ -41,14 +41,15 @@ jobs:
       # ---------- DAST (OWASP ZAP) ----------
       - name: Run OWASP ZAP Scan
         run: |
-          mkdir zap-output
-          docker run --rm \
-            -v "$PWD/zap-output:/zap/wrk" \
-            ghcr.io/zaproxy/zap-stable \
+         mkdir zap-output docker run --rm \
+         -v "$PWD/zap-output:/zap/wrk" \
+            owasp/zap-stable \
             zap-baseline.py \
               -t http://localhost:8080 \
               -J zap-report.json || true
           cp zap-output/zap-report.json .
+
+
 
       # ---------- Upload Result Files ----------
       - name: Upload Security Reports
